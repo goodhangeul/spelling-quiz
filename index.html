@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>맞춤법 OX 퀴즈</title>
+<meta name="description" content="헷갈리는 맞춤법, 10문제로 실력 확인! 로그인 없이 바로 플레이하고 실시간 랭킹에 도전하세요.">
+<meta name="theme-color" content="#f4f1ea">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="✍️ 맞춤법 OX 퀴즈">
+<meta property="og:description" content="헷갈리는 맞춤법, 10문제로 실력 확인! 나는 몇 점 나올까?">
+<!-- ▼ 배포 후 실제 주소로 바꾸세요. og.png는 1200×630 크기의 대표 이미지입니다. -->
+<meta property="og:url" content="https://goodhangeul.github.io/spelling-quiz/">
+<meta property="og:image" content="https://goodhangeul.github.io/spelling-quiz/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✍️</text></svg>">
 <style>
   :root{
     --bg:#f4f1ea; --card:#fffdf8; --ink:#2b2a33; --sub:#7a7787;
@@ -77,6 +88,31 @@
   .review li{background:#fdf3f3;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:14px;line-height:1.5}
   .review li s{color:var(--x)} .review li b{color:var(--ok)}
   .hint{text-align:center;color:#aaa;font-size:12px;margin-top:12px}
+
+  /* 닉네임 · 랭킹 · 공유 */
+  .nick{margin-top:16px}
+  .nick label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px;font-weight:600}
+  .nick input{width:100%;border:2px solid #eee8d8;border-radius:12px;padding:12px 14px;font-size:16px;background:#fff;color:var(--ink);font-family:inherit}
+  .nick input:focus{outline:none;border-color:var(--o)}
+  .err{color:var(--x);font-size:13px;min-height:18px;margin-top:6px}
+  .notice{text-align:center;color:#aaa;font-size:12px;margin-top:12px;line-height:1.5}
+  .myrank{text-align:center;font-size:15px;margin:6px 0 4px;min-height:22px}
+  .myrank b{color:var(--o)}
+  .tabs{display:flex;gap:6px;margin:14px 0 10px}
+  .tabs button{flex:1;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;background:#e9e5d8;color:var(--sub)}
+  .tabs button.on{background:var(--ink);color:#fff}
+  .board{list-style:none;max-height:420px;overflow:auto}
+  .board li{display:flex;align-items:center;gap:10px;background:#f3efe4;border-radius:12px;padding:11px 14px;margin-bottom:6px;font-size:15px}
+  .board li.me{background:#fff3c4;outline:2px solid var(--gold)}
+  .board .no{width:30px;text-align:center;font-weight:800}
+  .board .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .board .sc{font-weight:800}
+  .board li.empty{justify-content:center;color:var(--sub);background:none;text-align:center}
+  .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:blink 1.4s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.3s;z-index:9}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .btn.share{background:#fee500;color:#2b2a33}
   @media (max-width:420px){.qtext{font-size:19px}.app{padding:22px 16px}}
 </style>
 </head>
@@ -94,8 +130,15 @@
       🔥 연속 정답 콤보 보너스<br>
       ⌨️ 키보드: <b>← / O</b> = O, <b>→ / X</b> = X
     </div>
+    <div class="nick">
+      <label for="nick">닉네임 (비워 두면 자동으로 정해져요)</label>
+      <input id="nick" maxlength="10" placeholder="예: 맞춤법왕" autocomplete="off">
+      <div class="err" id="nickErr"></div>
+    </div>
     <button class="btn" id="startBtn">게임 시작</button>
+    <button class="btn ghost" id="rankBtn">🏆 랭킹 보기</button>
     <p class="best" id="bestTxt"></p>
+    <p class="notice">로그인 없이 플레이할 수 있어요.<br>닉네임과 점수는 공개 랭킹에 표시됩니다. 개인정보는 입력하지 마세요.</p>
   </section>
 
   <!-- 게임 화면 -->
@@ -128,11 +171,28 @@
       <div><b id="stRate">0%</b>정답률</div>
     </div>
     <div class="best" id="newBest"></div>
+    <div class="myrank" id="myRank"></div>
     <div class="review" id="review"></div>
+    <button class="btn share" id="shareBtn">📤 결과 공유하기</button>
     <button class="btn" id="retryBtn">다시 도전</button>
+    <button class="btn ghost" id="rankBtn2">🏆 전체 랭킹 보기</button>
     <button class="btn ghost" id="homeBtn">처음으로</button>
   </section>
+
+  <!-- 랭킹 화면 -->
+  <section id="rank" class="screen">
+    <div class="logo" style="font-size:48px">🏆</div>
+    <h1>랭킹</h1>
+    <p class="desc" style="margin:6px 0 0"><span class="live"></span><span id="rankNote">실시간 TOP 20</span></p>
+    <div class="tabs">
+      <button id="tabAll" class="on">전체</button>
+      <button id="tabToday">오늘</button>
+    </div>
+    <ul class="board" id="rankList"></ul>
+    <button class="btn" id="rankBack">돌아가기</button>
+  </section>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 /* ===== 문제 데이터 =====
@@ -184,8 +244,11 @@ const QUESTIONS = [
 /* ===== 설정 ===== */
 const ROUND = 10, TIME = 12;
 const $ = id => document.getElementById(id);
-const screens = ['start','game','result'];
-function show(id){ screens.forEach(s => $(s).classList.toggle('on', s===id)); }
+const screens = ['start','game','result','rank'];
+function show(id){
+  if(id!=='rank' && unsub){ unsub(); unsub=null; } // 랭킹 화면을 벗어나면 실시간 구독 해제
+  screens.forEach(s => $(s).classList.toggle('on', s===id));
+}
 
 let queue=[], idx=0, score=0, combo=0, maxCombo=0, correctCnt=0, wrongs=[];
 let left=TIME, timer=null, locked=false, cur=null;
@@ -196,6 +259,7 @@ function refreshBest(){ const b=getBest(); $('bestTxt').innerHTML = b ? `🏆 �
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 function startGame(){
+  if(!applyName()){ show('start'); return; }
   queue = shuffle(QUESTIONS).slice(0, ROUND);
   idx=0; score=0; combo=0; maxCombo=0; correctCnt=0; wrongs=[];
   show('game'); nextQ();
@@ -278,6 +342,8 @@ function finish(){
     ? `<h3>📝 오답 노트</h3><ul>${wrongs.map(w=>`<li>${w.s.replace(/<mark>(.*?)<\/mark>/,(m,t)=> w.ok?`<b>${t}</b>`:`<s>${t}</s> → <b>${w.ans}</b>`)}<br><span style="color:var(--sub);font-size:13px">${w.exp}</span></li>`).join('')}</ul>`
     : '<h3>🎊 오답이 하나도 없어요!</h3>';
   show('result');
+  $('myRank').textContent='';
+  submitScore();
 }
 
 /* ===== 이벤트 ===== */
@@ -295,13 +361,139 @@ document.addEventListener('keydown', e=>{
       if(k==='arrowleft'||k==='o'||k==='ㅐ') answer(true);
       else if(k==='arrowright'||k==='x'||k==='ㅌ') answer(false);
     } else if(k==='enter'||k===' '){ e.preventDefault(); goNext(); }
-  } else if(k==='enter'){
+  } else if(k==='enter' && e.target.tagName!=='BUTTON'){
     if($('start').classList.contains('on')) startGame();
     else if($('result').classList.contains('on')) startGame();
   }
 });
 
+/* ===== 닉네임 · 랭킹 · 공유 ===== */
+// ▼ Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)의 설정 값을 넣으세요.
+//   비워 두면 '내 기기 랭킹'으로만 동작합니다(게임은 정상 작동).
+const FIREBASE_CONFIG = { apiKey:"", authDomain:"", projectId:"", appId:"" };
+const SITE_URL = "https://goodhangeul.github.io/spelling-quiz/"; // 배포 주소. 비우면 현재 주소를 공유합니다.
+const ONLINE = !!FIREBASE_CONFIG.projectId;
+const COOLDOWN = 8000; // 점수 연속 등록 제한(ms)
+const BAD = ['시발','씨발','병신','좆','지랄','개새','섹스','fuck','shit','sex'];
+
+let player='', unsub=null, fbP=null, rankFrom='start';
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
+
+/* 닉네임 검증 */
+function checkName(n){
+  if(n.length<2||n.length>10) return '닉네임은 2~10자로 입력해 주세요.';
+  if(!/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9_ ]+$/.test(n)) return '한글, 영문, 숫자, 밑줄(_)만 쓸 수 있어요.';
+  const t=n.toLowerCase().replace(/[\s_]/g,'');
+  if(BAD.some(w=>t.includes(w))) return '사용할 수 없는 표현이 들어 있어요.';
+  return '';
+}
+function applyName(){
+  let n = $('nick').value.trim().replace(/\s+/g,' ');
+  if(!n) n = localStorage.getItem('spellOXName') || ('손님'+(1000+Math.random()*9000|0));
+  const err = checkName(n);
+  $('nickErr').textContent = err;
+  if(err) return false;
+  player=n; localStorage.setItem('spellOXName',n); $('nick').value=n;
+  return true;
+}
+
+/* 내 기기 랭킹 (온라인 연결 전/실패 시 대체) */
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem('spellOXLocal'))||[]; }catch(e){ return []; } }
+function saveLocal(r){ const a=loadLocal(); a.push(r); a.sort((x,y)=>y.score-x.score); localStorage.setItem('spellOXLocal',JSON.stringify(a.slice(0,50))); }
+function localTop(tab){ const a=loadLocal(); return (tab==='today'?a.filter(r=>r.day===todayStr()):a).slice(0,20); }
+
+/* Firebase 지연 로드 */
+function getFB(){
+  if(!ONLINE) return Promise.resolve(null);
+  return fbP || (fbP = (async()=>{
+    try{
+      const base='https://www.gstatic.com/firebasejs/10.12.2/';
+      const [{initializeApp}, F] = await Promise.all([import(base+'firebase-app.js'), import(base+'firebase-firestore.js')]);
+      return { F, db: F.getFirestore(initializeApp(FIREBASE_CONFIG)) };
+    }catch(e){ console.warn('Firebase 로드 실패',e); return null; }
+  })());
+}
+
+/* 점수 등록 + 내 순위 */
+async function submitScore(){
+  const el=$('myRank');
+  const row={ name:player, score, correct:correctCnt, maxCombo, day:todayStr() };
+  saveLocal(row);
+  const localRank = loadLocal().filter(r=>r.score>score).length+1;
+  if(!ONLINE || score===0){ el.innerHTML = score===0 ? '' : `📱 내 기기 기록 중 <b>${localRank}위</b>`; return; }
+  const last = +localStorage.getItem('spellOXLast')||0;
+  if(Date.now()-last < COOLDOWN){ el.textContent='⏳ 잠시 후 다시 등록할 수 있어요.'; return; }
+  localStorage.setItem('spellOXLast', Date.now());
+  el.textContent='순위 등록 중…';
+  const f = await getFB();
+  if(!f){ el.innerHTML=`📱 온라인 연결 실패 · 내 기기 기록 중 <b>${localRank}위</b>`; return; }
+  try{
+    const {F,db}=f, col=F.collection(db,'scores');
+    await F.addDoc(col,{ ...row, createdAt:F.serverTimestamp() });
+    const [g,t] = await Promise.all([
+      F.getCountFromServer(F.query(col,F.where('score','>',score))),
+      F.getCountFromServer(col)
+    ]);
+    el.innerHTML = `🌍 전체 <b>${t.data().count.toLocaleString()}명</b> 중 <b>${(g.data().count+1).toLocaleString()}위</b>`;
+  }catch(e){
+    console.warn(e);
+    el.innerHTML = `⚠️ 등록 실패 · 내 기기 기록 중 <b>${localRank}위</b>`;
+  }
+}
+
+/* 랭킹 화면 (실시간 구독) */
+function renderBoard(rows){
+  const box=$('rankList');
+  if(!rows.length){ box.innerHTML='<li class="empty">아직 기록이 없어요.<br>첫 번째 주인공이 되어 보세요!</li>'; return; }
+  const medal=['🥇','🥈','🥉'];
+  box.innerHTML = rows.map((r,i)=>`<li class="${r.name===player?'me':''}"><span class="no">${medal[i]||i+1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${Number(r.score)||0}점</span></li>`).join('');
+}
+async function openRank(tab){
+  const cur = screens.find(s=>$(s).classList.contains('on'));
+  if(cur!=='rank') rankFrom = cur;
+  show('rank');
+  $('tabAll').classList.toggle('on', tab==='all');
+  $('tabToday').classList.toggle('on', tab==='today');
+  const local = () => { $('rankNote').textContent='내 기기 기록'; renderBoard(localTop(tab)); };
+  if(!ONLINE){ local(); return; }
+  $('rankNote').textContent = tab==='today' ? '오늘의 실시간 TOP 20' : '실시간 TOP 20';
+  $('rankList').innerHTML='<li class="empty">불러오는 중…</li>';
+  const f = await getFB();
+  if(!f){ local(); return; }
+  const {F,db}=f, col=F.collection(db,'scores');
+  const q = tab==='today'
+    ? F.query(col,F.where('day','==',todayStr()),F.orderBy('score','desc'),F.limit(20))
+    : F.query(col,F.orderBy('score','desc'),F.limit(20));
+  if(unsub){ unsub(); unsub=null; }
+  unsub = F.onSnapshot(q,
+    snap => renderBoard(snap.docs.map(d=>d.data())),
+    err => { console.warn(err); $('rankList').innerHTML='<li class="empty">랭킹을 불러오지 못했어요.<br>잠시 후 다시 시도해 주세요.</li>'; });
+}
+
+/* 결과 공유 */
+async function share(){
+  const url = SITE_URL || (location.origin+location.pathname);
+  const text = `✍️ 맞춤법 OX 퀴즈 ${correctCnt}/${ROUND}, ${score}점! 나는 몇 점 나올까?`;
+  if(navigator.share){
+    try{ await navigator.share({title:'맞춤법 OX 퀴즈', text, url}); return; }
+    catch(e){ if(e.name==='AbortError') return; }
+  }
+  try{ await navigator.clipboard.writeText(text+'\n'+url); toast('링크가 복사되었어요! 붙여 넣어 공유하세요'); }
+  catch(e){ prompt('아래 내용을 복사해서 공유하세요', text+' '+url); }
+}
+
+$('rankBtn').onclick  = ()=>openRank('all');
+$('rankBtn2').onclick = ()=>openRank('all');
+$('tabAll').onclick   = ()=>openRank('all');
+$('tabToday').onclick = ()=>openRank('today');
+$('rankBack').onclick = ()=>{ if(rankFrom==='result') show('result'); else { refreshBest(); show('start'); } };
+$('shareBtn').onclick = share;
+
 refreshBest();
+$('nick').value = localStorage.getItem('spellOXName') || '';
 </script>
 </body>
 </html>
