@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>맞춤법 OX 퀴즈</title>
+<style>
+  :root{
+    --bg:#f4f1ea; --card:#fffdf8; --ink:#2b2a33; --sub:#7a7787;
+    --o:#2f80ed; --x:#eb5757; --ok:#27ae60; --gold:#f2b600;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:var(--bg);color:var(--ink);min-height:100vh;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .app{width:100%;max-width:520px;background:var(--card);border-radius:24px;
+    box-shadow:0 10px 40px rgba(0,0,0,.1);padding:28px 24px;position:relative;overflow:hidden}
+  .screen{display:none;animation:fade .3s}
+  .screen.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* start */
+  .logo{font-size:64px;text-align:center;margin-bottom:6px}
+  h1{text-align:center;font-size:28px;letter-spacing:-.5px}
+  .desc{text-align:center;color:var(--sub);margin:10px 0 22px;line-height:1.6;font-size:15px}
+  .best{text-align:center;font-size:14px;color:var(--sub);margin-top:14px}
+  .best b{color:var(--gold)}
+  .rules{background:#f3efe4;border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.8;color:#555}
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:17px;font-weight:700;
+    cursor:pointer;background:var(--ink);color:#fff;margin-top:16px;transition:transform .1s,opacity .2s}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:#e9e5d8;color:var(--ink)}
+
+  /* game */
+  .top{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--sub);font-weight:600}
+  .top .score{color:var(--ink);font-size:16px}
+  .combo{color:var(--x);min-height:20px;font-weight:800;font-size:14px;text-align:right}
+  .bar{height:8px;background:#e9e5d8;border-radius:99px;margin:10px 0 4px;overflow:hidden}
+  .bar i{display:block;height:100%;width:100%;background:var(--ok);border-radius:99px;transition:width .1s linear,background .3s}
+  .progress{font-size:13px;color:var(--sub);text-align:center;margin-bottom:6px}
+  .qbox{background:#fff;border:2px solid #eee8d8;border-radius:18px;padding:30px 18px;margin:12px 0 18px;
+    text-align:center;min-height:150px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+  .qlabel{font-size:13px;color:var(--sub)}
+  .qtext{font-size:22px;line-height:1.6;font-weight:600;word-break:keep-all}
+  mark{background:linear-gradient(transparent 55%,#ffe17d 55%);color:inherit;font-weight:800;padding:0 2px}
+  .qbox.shake{animation:shake .4s}
+  .qbox.pop{animation:pop .35s}
+  @keyframes shake{25%{transform:translateX(-10px)}50%{transform:translateX(10px)}75%{transform:translateX(-6px)}}
+  @keyframes pop{50%{transform:scale(1.04)}}
+  .ox{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ox button{border:none;border-radius:18px;padding:22px 0;font-size:46px;font-weight:900;color:#fff;cursor:pointer;
+    transition:transform .1s,opacity .2s;position:relative}
+  .ox button small{display:block;font-size:12px;font-weight:600;opacity:.8;margin-top:2px}
+  .ox .o{background:var(--o)} .ox .x{background:var(--x)}
+  .ox button:active{transform:scale(.95)}
+  .ox button:disabled{opacity:.35;cursor:default}
+
+  .fb{display:none;margin-top:16px;border-radius:16px;padding:16px;line-height:1.7;font-size:15px}
+  .fb.show{display:block;animation:fade .25s}
+  .fb.good{background:#e6f6ec} .fb.bad{background:#fdeaea}
+  .fb .h{font-weight:800;font-size:18px;margin-bottom:4px}
+  .fb .ans{font-weight:700}
+  .fb .ans em{font-style:normal;color:var(--ok);background:#fff;border-radius:6px;padding:1px 7px}
+
+  /* result */
+  .grade{font-size:72px;text-align:center}
+  .final{text-align:center;font-size:44px;font-weight:900;margin:4px 0}
+  .final small{font-size:18px;color:var(--sub);font-weight:600}
+  .title{text-align:center;font-size:18px;font-weight:700;margin-bottom:14px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+  .stats div{background:#f3efe4;border-radius:12px;padding:12px 4px;text-align:center;font-size:12px;color:var(--sub)}
+  .stats b{display:block;font-size:20px;color:var(--ink);margin-bottom:2px}
+  .review h3{font-size:15px;margin:16px 0 8px}
+  .review ul{list-style:none;max-height:200px;overflow:auto}
+  .review li{background:#fdf3f3;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:14px;line-height:1.5}
+  .review li s{color:var(--x)} .review li b{color:var(--ok)}
+  .hint{text-align:center;color:#aaa;font-size:12px;margin-top:12px}
+  @media (max-width:420px){.qtext{font-size:19px}.app{padding:22px 16px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 시작 화면 -->
+  <section id="start" class="screen on">
+    <div class="logo">✍️</div>
+    <h1>맞춤법 OX 퀴즈</h1>
+    <p class="desc">문장 속 <mark>강조된 표현</mark>이 올바르면 <b style="color:var(--o)">O</b>,<br>틀렸으면 <b style="color:var(--x)">X</b>를 눌러 주세요!</p>
+    <div class="rules">
+      ⏱ 문제당 12초 · 총 10문제 (매번 랜덤)<br>
+      ⚡ 빨리 맞힐수록 보너스 점수<br>
+      🔥 연속 정답 콤보 보너스<br>
+      ⌨️ 키보드: <b>← / O</b> = O, <b>→ / X</b> = X
+    </div>
+    <button class="btn" id="startBtn">게임 시작</button>
+    <p class="best" id="bestTxt"></p>
+  </section>
+
+  <!-- 게임 화면 -->
+  <section id="game" class="screen">
+    <div class="top"><span id="qnum">1 / 10</span><span class="score">⭐ <span id="score">0</span>점</span></div>
+    <div class="combo" id="combo"></div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="progress" id="timeTxt">12초</div>
+    <div class="qbox" id="qbox">
+      <div class="qlabel">밑줄 친 표현, 맞춤법에 맞을까요?</div>
+      <div class="qtext" id="qtext"></div>
+    </div>
+    <div class="ox">
+      <button class="o" id="btnO">O<small>맞아요</small></button>
+      <button class="x" id="btnX">X<small>틀려요</small></button>
+    </div>
+    <div class="fb" id="fb"></div>
+    <button class="btn" id="nextBtn" style="display:none">다음 문제 →</button>
+    <div class="hint">Enter / Space = 다음 문제</div>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section id="result" class="screen">
+    <div class="grade" id="gradeIcon"></div>
+    <div class="title" id="gradeTitle"></div>
+    <div class="final"><span id="finalScore">0</span><small> 점</small></div>
+    <div class="stats">
+      <div><b id="stCorrect">0</b>정답</div>
+      <div><b id="stCombo">0</b>최고 콤보</div>
+      <div><b id="stRate">0%</b>정답률</div>
+    </div>
+    <div class="best" id="newBest"></div>
+    <div class="review" id="review"></div>
+    <button class="btn" id="retryBtn">다시 도전</button>
+    <button class="btn ghost" id="homeBtn">처음으로</button>
+  </section>
+</div>
+
+<script>
+/* ===== 문제 데이터 =====
+   s: 문장(<mark>로 강조), ok: 강조 표현이 맞으면 true,
+   ans: 올바른 표기, exp: 해설 */
+const QUESTIONS = [
+  {s:"오늘이 <mark>몇 일</mark>이지?", ok:false, ans:"며칠", exp:"‘몇 일’이 아니라 ‘며칠’로 적습니다."},
+  {s:"<mark>금세</mark> 괜찮아질 거야.", ok:true, ans:"금세", exp:"‘금시에’의 준말로 ‘금세’가 맞습니다. (‘금새’ ✕)"},
+  {s:"일이 잘 <mark>됬다</mark>.", ok:false, ans:"됐다", exp:"‘되었다’의 준말은 ‘됐다’입니다. ‘됬’은 없는 표기예요."},
+  {s:"그의 <mark>역활</mark>이 매우 중요하다.", ok:false, ans:"역할", exp:"役割(역할)은 ‘역할’이 맞습니다."},
+  {s:"밥 먹고 <mark>설거지</mark>를 했다.", ok:true, ans:"설거지", exp:"‘설겆이’는 옛 표기이고 현재는 ‘설거지’만 표준어입니다."},
+  {s:"너무 황당해서 <mark>어의없다</mark>.", ok:false, ans:"어이없다", exp:"‘어이없다’가 표준어입니다."},
+  {s:"참 <mark>희한한</mark> 일이다.", ok:true, ans:"희한한", exp:"稀罕(희한)이므로 ‘희한하다’가 맞습니다. (‘희안하다’ ✕)"},
+  {s:"<mark>웬지</mark> 오늘은 기분이 좋다.", ok:false, ans:"왠지", exp:"‘왜인지’의 준말이므로 ‘왠지’가 맞습니다."},
+  {s:"이게 <mark>웬일</mark>이야!", ok:true, ans:"웬일", exp:"‘웬일’이 맞습니다. (‘왠일’ ✕)"},
+  {s:"그렇게 하면 <mark>안 돼요</mark>.", ok:true, ans:"안 돼요", exp:"‘안 되어요’의 준말이므로 ‘안 돼요’가 맞습니다."},
+  {s:"나의 <mark>바램</mark>은 우리 가족의 건강이다.", ok:false, ans:"바람", exp:"‘바라다’의 명사형은 ‘바람’입니다. (‘바램’은 색이 바래는 경우에만)"},
+  {s:"감기가 빨리 <mark>낳았으면</mark> 좋겠다.", ok:false, ans:"나았으면", exp:"병이 ‘낫다’이고, ‘낳다’는 출산에 씁니다."},
+  {s:"퀴즈의 정답을 <mark>맞혔다</mark>.", ok:true, ans:"맞혔다", exp:"정답을 ‘맞히다’가 맞습니다. (‘맞추다’는 퍼즐·시간 등)"},
+  {s:"나는 너와 생각이 <mark>틀려</mark>.", ok:false, ans:"달라", exp:"서로 같지 않을 땐 ‘다르다’, 정답이 아닐 때만 ‘틀리다’."},
+  {s:"그는 <mark>일부러</mark> 모른 척했다.", ok:true, ans:"일부러", exp:"‘일부러’가 맞습니다. (‘일부로’ ✕)"},
+  {s:"방을 <mark>깨끗히</mark> 청소했다.", ok:false, ans:"깨끗이", exp:"‘깨끗하다’처럼 ‘하’가 붙는 어간 + ‘ㅅ’ 받침은 ‘-이’로 적습니다."},
+  {s:"짜장면 <mark>곱빼기</mark>로 주세요.", ok:true, ans:"곱빼기", exp:"‘곱빼기’가 표준어입니다. (‘곱배기’ ✕)"},
+  {s:"포장마차에서 <mark>떡볶기</mark>를 먹었다.", ok:false, ans:"떡볶이", exp:"‘떡볶이’가 맞습니다."},
+  {s:"여기서 흡연은 <mark>삼가해</mark> 주세요.", ok:false, ans:"삼가", exp:"기본형이 ‘삼가다’이므로 ‘삼가 주세요’가 맞습니다."},
+  {s:"손가락으로 달을 <mark>가르키며</mark> 말했다.", ok:false, ans:"가리키며", exp:"방향을 짚을 땐 ‘가리키다’, 지식을 알려 줄 땐 ‘가르치다’."},
+  {s:"<mark>웃어른</mark>께 인사를 드렸다.", ok:true, ans:"웃어른", exp:"위아래 대립이 없는 말은 ‘웃-’을 씁니다. (‘윗어른’ ✕)"},
+  {s:"<mark>오랜만에</mark> 친구를 만났다.", ok:true, ans:"오랜만에", exp:"‘오랜만’이 맞습니다. (‘오랫만’ ✕)"},
+  {s:"<mark>이따가</mark> 전화할게.", ok:true, ans:"이따가", exp:"조금 지난 뒤는 ‘이따가’, ‘있다가’는 ‘머물다’의 의미."},
+  {s:"내일 학교에서 <mark>뵈요</mark>.", ok:false, ans:"봬요", exp:"‘뵈어요’의 준말이므로 ‘봬요’가 맞습니다."},
+  {s:"그가 늦는 건 <mark>으레</mark> 있는 일이다.", ok:true, ans:"으레", exp:"‘으레’가 표준어입니다. (‘으례’ ✕)"},
+  {s:"집이 <mark>넓직하고</mark> 좋다.", ok:false, ans:"널찍하고", exp:"‘널찍하다’가 표준어입니다."},
+  {s:"점심으로 <mark>육계장</mark>을 먹었다.", ok:false, ans:"육개장", exp:"‘육개장’이 표준어입니다."},
+  {s:"첫 만남의 <mark>설레임</mark>이 아직도 생생하다.", ok:false, ans:"설렘", exp:"‘설레다’의 명사형은 ‘설렘’입니다."},
+  {s:"<mark>굳이</mark> 가지 않아도 돼.", ok:true, ans:"굳이", exp:"‘굳이’가 맞습니다. (‘구지’ ✕)"},
+  {s:"아침에 일어나니 <mark>눈꼽</mark>이 꼈다.", ok:false, ans:"눈곱", exp:"‘눈곱’이 표준어입니다."},
+  {s:"<mark>예부터</mark> 전해 내려오는 이야기다.", ok:true, ans:"예부터", exp:"‘옛날’의 뜻일 땐 ‘예부터’, ‘옛부터’는 틀린 표기."},
+  {s:"신용카드로 <mark>결제</mark>했다.", ok:true, ans:"결제", exp:"대금을 치르는 건 ‘결제’, 상사의 승인은 ‘결재’."},
+  {s:"부장님께 서류 <mark>결제</mark>를 받았다.", ok:false, ans:"결재", exp:"안건을 승인받는 것은 ‘결재’입니다."},
+  {s:"어제 시험을 <mark>치뤘다</mark>.", ok:false, ans:"치렀다", exp:"기본형 ‘치르다’ → ‘치러, 치렀다’."},
+  {s:"집을 나서며 문을 <mark>잠궜다</mark>.", ok:false, ans:"잠갔다", exp:"기본형 ‘잠그다’ → ‘잠가, 잠갔다’."},
+  {s:"올해도 가족과 함께 김치를 <mark>담갔다</mark>.", ok:true, ans:"담갔다", exp:"기본형 ‘담그다’ → ‘담가, 담갔다’. (‘담궜다’ ✕)"},
+  {s:"저녁엔 <mark>김치찌개</mark>를 끓였다.", ok:true, ans:"김치찌개", exp:"‘찌개’가 맞습니다. (‘찌게’ ✕)"},
+  {s:"발표 전이라 <mark>안절부절하며</mark> 기다렸다.", ok:false, ans:"안절부절못하며", exp:"‘안절부절못하다’는 한 단어로, ‘못하다’까지 붙여 씁니다."},
+  {s:"오늘은 일찍 퇴근해도 <mark>돼</mark>.", ok:true, ans:"돼", exp:"‘되어’의 준말이므로 ‘돼’가 맞습니다. (‘되’로 바꿔 보면 어색)"},
+  {s:"너 때문에 <mark>할 수 밖에</mark> 없었어.", ok:false, ans:"할 수밖에", exp:"‘~ 수밖에 없다’의 ‘밖에’는 조사이므로 붙여 씁니다."}
+];
+
+/* ===== 설정 ===== */
+const ROUND = 10, TIME = 12;
+const $ = id => document.getElementById(id);
+const screens = ['start','game','result'];
+function show(id){ screens.forEach(s => $(s).classList.toggle('on', s===id)); }
+
+let queue=[], idx=0, score=0, combo=0, maxCombo=0, correctCnt=0, wrongs=[];
+let left=TIME, timer=null, locked=false, cur=null;
+
+const getBest = () => +localStorage.getItem('spellOXBest') || 0;
+function refreshBest(){ const b=getBest(); $('bestTxt').innerHTML = b ? `🏆 최고 점수 <b>${b}</b>점` : ''; }
+
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function startGame(){
+  queue = shuffle(QUESTIONS).slice(0, ROUND);
+  idx=0; score=0; combo=0; maxCombo=0; correctCnt=0; wrongs=[];
+  show('game'); nextQ();
+}
+
+function nextQ(){
+  if(idx>=queue.length) return finish();
+  cur = queue[idx]; locked=false;
+  $('qnum').textContent = `${idx+1} / ${ROUND}`;
+  $('score').textContent = score;
+  $('qtext').innerHTML = cur.s;
+  $('fb').className='fb'; $('fb').innerHTML='';
+  $('nextBtn').style.display='none';
+  $('btnO').disabled = $('btnX').disabled = false;
+  $('qbox').className='qbox';
+  renderCombo();
+  left = TIME; tick();
+  clearInterval(timer);
+  timer = setInterval(()=>{ left-=0.1; tick(); if(left<=0){ clearInterval(timer); answer(null); } },100);
+}
+
+function tick(){
+  const p = Math.max(left,0)/TIME*100;
+  const f = $('barFill');
+  f.style.width = p+'%';
+  f.style.background = p>50 ? 'var(--ok)' : p>25 ? 'var(--gold)' : 'var(--x)';
+  $('timeTxt').textContent = Math.ceil(Math.max(left,0)) + '초';
+}
+
+function renderCombo(){ $('combo').textContent = combo>=2 ? `🔥 ${combo}연속 정답!` : ''; }
+
+function answer(choice){ // choice: true(O) / false(X) / null(시간초과)
+  if(locked) return; locked=true; clearInterval(timer);
+  $('btnO').disabled = $('btnX').disabled = true;
+  const right = choice === cur.ok;
+  const box = $('qbox'), fb = $('fb');
+  let html;
+  if(right){
+    const timeBonus = Math.floor(left)*5;
+    const comboBonus = Math.min(combo,5)*10;
+    const gain = 100 + timeBonus + comboBonus;
+    score += gain; combo++; maxCombo=Math.max(maxCombo,combo); correctCnt++;
+    box.classList.add('pop');
+    html = `<div class="h">⭕ 정답! +${gain}점</div>`;
+    fb.className='fb show good';
+  } else {
+    combo=0; wrongs.push(cur);
+    box.classList.add('shake');
+    html = `<div class="h">${choice===null?'⏰ 시간 초과!':'❌ 아쉬워요!'}</div>`;
+    fb.className='fb show bad';
+  }
+  html += `<div class="ans">정답은 <em>${cur.ok?'O':'X'}</em> · 올바른 표기: <em>${cur.ans}</em></div><div>${cur.exp}</div>`;
+  fb.innerHTML = html;
+  $('score').textContent = score; renderCombo();
+  const nb = $('nextBtn');
+  nb.textContent = idx+1>=ROUND ? '결과 보기 →' : '다음 문제 →';
+  nb.style.display='block';
+}
+
+function goNext(){ if(!locked) return; idx++; nextQ(); }
+
+function finish(){
+  clearInterval(timer);
+  const rate = Math.round(correctCnt/ROUND*100);
+  let icon,title;
+  if(correctCnt===ROUND){icon='👑';title='맞춤법 마스터! 완벽해요';}
+  else if(correctCnt>=8){icon='🏅';title='국어 실력자!';}
+  else if(correctCnt>=6){icon='😊';title='꽤 잘하시네요';}
+  else if(correctCnt>=4){icon='📖';title='조금만 더 공부해 봐요';}
+  else {icon='🌱';title='지금부터 시작이에요!';}
+  $('gradeIcon').textContent=icon; $('gradeTitle').textContent=title;
+  $('finalScore').textContent=score;
+  $('stCorrect').textContent=`${correctCnt}/${ROUND}`;
+  $('stCombo').textContent=maxCombo;
+  $('stRate').textContent=rate+'%';
+  const best=getBest();
+  if(score>best){ localStorage.setItem('spellOXBest',score); $('newBest').innerHTML='🎉 <b style="color:var(--gold)">신기록 달성!</b>'; }
+  else $('newBest').innerHTML = `🏆 최고 점수 <b>${best}</b>점`;
+  $('review').innerHTML = wrongs.length
+    ? `<h3>📝 오답 노트</h3><ul>${wrongs.map(w=>`<li>${w.s.replace(/<mark>(.*?)<\/mark>/,(m,t)=> w.ok?`<b>${t}</b>`:`<s>${t}</s> → <b>${w.ans}</b>`)}<br><span style="color:var(--sub);font-size:13px">${w.exp}</span></li>`).join('')}</ul>`
+    : '<h3>🎊 오답이 하나도 없어요!</h3>';
+  show('result');
+}
+
+/* ===== 이벤트 ===== */
+$('startBtn').onclick = startGame;
+$('retryBtn').onclick = startGame;
+$('homeBtn').onclick = ()=>{ refreshBest(); show('start'); };
+$('btnO').onclick = ()=>answer(true);
+$('btnX').onclick = ()=>answer(false);
+$('nextBtn').onclick = goNext;
+
+document.addEventListener('keydown', e=>{
+  const k = e.key.toLowerCase();
+  if($('game').classList.contains('on')){
+    if(!locked){
+      if(k==='arrowleft'||k==='o'||k==='ㅐ') answer(true);
+      else if(k==='arrowright'||k==='x'||k==='ㅌ') answer(false);
+    } else if(k==='enter'||k===' '){ e.preventDefault(); goNext(); }
+  } else if(k==='enter'){
+    if($('start').classList.contains('on')) startGame();
+    else if($('result').classList.contains('on')) startGame();
+  }
+});
+
+refreshBest();
+</script>
+</body>
+</html>
